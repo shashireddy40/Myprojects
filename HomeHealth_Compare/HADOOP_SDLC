@@ -1,0 +1,109 @@
+1) BRD
+
+2) BRD Analysis   ( Data Analysis, jobs to be developed )
+
+3) Planning
+
+4) Designing
+
+5) Development
+
+6) Testing
+
+7) pre-prod ( optional )
+
+8) prod ( go live )
+
+9) maintainance 
+
+======================
+
+1) BRD
+
+2) BRD Analysis 
+
+3) Data Analysis 
+
+4) Estimating size of data
+   eg:
+	clent will provide the size of data
+	take the help DBA to estimate size of data
+	
+
+5) Estimating size of the cluster
+	eg:
+   cluster capacity =   ( 3 times of actual size of data ) + 40%*( 3 times of actual size of data )
+   machine configurations 
+
+	1)two NameNodes ( ANN and PNN )
+	Storage Heavy Configuration (2U/machine): 
+	Two hex-core CPUs, 
+	48GB memory,
+	2 disk drives ( each 2TB). 
+
+	2) SecondaryNameNode (optional )
+	Storage Heavy Configuration (2U/machine): 
+	Two hex-core CPUs, 
+	48GB memory,
+	2 disk drives ( each 2TB). 
+
+
+  	3)Two Resource Managers ( ARM, PRM )
+	Storage Heavy Configuration (2U/machine): 
+	Two hex-core CPUs, 
+	48GB memory,
+	2 disk drives ( each 2TB).
+
+	4) Edit  logs 
+	lowend system ( basic configuration )
+	one hex-core CPUs, 
+	4GB memory,
+	1 disk drive of 1TB
+
+	5) Data nodes
+	1)Two hex-core CPUs,
+	2)16GB 
+	3)12 disk drives (2TB )directly attached using the motherboard controller as twins with 	two motherboards and 12 drives in a single cabinet.
+          total capacity 24TB
+
+	actual size of data  = 10 pb
+	 size in TB  = 10*1024 = 10240 TB
+	estimated total size = (10240 + 0.4 * 10240 ) * 3 = 43008
+	nodes = 43008 TB  /24 TB = 1792 (around 1800 nodes )
+ 
+6) Estimating resources ( man hours ) 
+  
+
+7) feasibility report ( total cost of the project ) 
+ 
+8) client is ok with the report 
+=================================
+
+project steps:
+==============
+
+1) procurement of hardware
+
+2) cluster setup including hadoop and its eco-systems setup 
+
+3) Loading data into cluster  / developing mapreduce jobs/ hive jobs / pig jobs 
+
+5) Visualization
+
+4) Testing jobs  
+
+5) pre-prod testing
+
+6) prod-env  
+
+========================================
+
+
+
+
+
+
+
+
+
+
