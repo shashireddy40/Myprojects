@@ -1,0 +1,277 @@
+
+Hive metastores runs on 9083 port
+
+spark-shell --driver-java-options"-Dhive.metastore.uris=thrift://localhost:9083"
+
+val sqlContext=new org.apache.spark.sql.hive.HiveContext(sc)
+
+
+
+Lesson Topics
+
+    Introduction
+    Introduction to Spark
+    Setup Spark on Windows
+    Quick overview about Spark documentation
+    Initializing Spark job using spark-shell
+    Create Resilient Distributed Data Sets (RDD)
+    Previewing data from RDD
+    Reading different file formats - Brief overview using JSON
+    Transformations Overview
+    Manipulating Strings as part of transformations using scala
+    Row level transformations using map
+    Row level transformations using flatMap
+    Filtering the data
+    Joining data sets - inner join
+    Joining data sets - outer join
+    Aggregations - Getting Started
+    Aggregations - using actions (reduce and countByKey)
+    Aggregations - understanding combiner
+    Aggregations using groupByKey - least preferred API for aggregations
+    Aggregations using reduceByKey
+    Aggregations using aggregateByKey
+    Sorting data using sortByKey
+    Global Ranking - using sortByKey with take and takeOrdered
+    By Key Ranking - Converting (K, V) pairs into (K, Iterable[V]) using groupByKey
+    Get topNPrices using Scala Collections API
+    Get topNPricedProducts using Scala Collections API
+    Get top n products by category using groupByKey, flatMap and Scala function
+    Set Operations - union, intersect, distinct as well as minus
+    Save data in Text Input Format
+    Save data in Text Input Format using Compression
+    Saving data in standard file formats - Overview
+    Revision of Problem Statement and Design the solution
+    Solution - Get Daily Revenue per Product - Launching Spark Shell
+    Solution - Get Daily Revenue per Product - Read and join orders and order_items
+    Solution - Get Daily Revenue per Product - Compute daily revenue per product id
+    Solution - Get Daily Revenue per Product - Read products data and create RDD
+    Solution - Get Daily Revenue per Product - Sort and save to HDFS
+    Solution - Add spark dependencies to sbt
+    Solution - Develop as Scala based application
+    Solution - Run locally using spark-submit
+    Solution - Ship and run it on big data cluster
+
+
+
+
+==============================================================================================
+
+
+Transform, Stage and Store – Spark
+
+Spark-
+
+    Spark is Distributed computing framework
+    Bunch of APIs to process data
+    Higher level modules such as Data Frames/SQL, Streaming, MLLib and more
+    Well integrated with Python, Scala, Java etc
+    Spark uses HDFS API to deal with file system
+    It can run on any distributed or cloud file systems – HDFS, s3, Azure Blob etc
+    Only Core Spark and Spark SQL (including Data Frames) is part of the curriculum for CCA
+    Spark and Hadoop Developer. CCA also requires some knowledge of Spark Streaming.
+    Pre-requisites – Programming Language (Scala or Python)
+
+
+Create Resilient Distributed Data Sets (RDD)
+
+
+
+    RDD – Resilient Distributed Dataset
+        In-memory
+        Distributed
+        Resilient
+    Reading files from HDFS
+    Reading files from the local file system and create RDD
+    A quick overview of Transformations and Actions
+    DAG and lazy evaluation
+    Previewing the data using Actions
+
+
+
+=============================================================================================
+
+spark-shell --master yarn \
+ --conf spark.ui.port = 12654 \
+ --num-executors 1 \
+ --executor-memory 512M
+
+
+----------------------Initialize SparkContext------------------------------------------------
+
+import org.apache.spark.{SparkConf, SparkContext}
+val conf = new SparkConf().setAppName("Daily Revenue").setMaster("yarn-client")
+val sc = new SparkContext(conf)
+
+Creating RDD from Hadoop 
+
+Val products=sc.Textfile("Path")
+
+Creating RDD from Local File
+
+val raw= scala.io.Source.fromFile("/home/ssr/Documents/Data/retail_db/orders/part-00000").getLines.toList
+val products=sc.parallelize(raw)
+
+
+"/home/ssr/Documents/Data/retail_db_json/products/Product_json"
+
+
+Reading Json file 
+
+val orderjson=spark.sqlContext.read.json("/home/ssr/Documents/Data/retail_db_json/products/Product_json")
+
+
+---------------------------Manipulating Strings as part of transformations using scala------------------------------
+
+
+Let us understand how we can manipulate strings in Scala. Following are important functionality to understand
+
+    A string can be converted into the array using split
+    Typecast data in string format to their original formats, such as toInt, toFloat etc
+    Extracting a substring from the main string using substring
+    Replace part of a string with other string using replace
+    Checking part of string for particular string pattern
+    and many more
+
+
+val str = orders.first
+val a = str.split(",")
+val orderId = a(0).toInt
+a(1).contains("2013")
+
+val orderDate = a(1)
+orderDate.substring(0, 10)
+orderDate.substring(5, 7)
+orderDate.substring(11)
+orderDate.replace('-', '/')
+orderDate.replace("07", "July")
+orderDate.indexOf("2")
+orderDate.indexOf("2", 2)
+orderDate.length
+
+==========================================================================
+
+
+String = 1,2013-07-25 00:00:00.0,11599,CLOSED
+
+
+val orderDates = orders.map((str: String) => {str.split(",")(1).substring(0, 10).replace("-", "").toInt})
+
+val orderDates = orders.map((x) => {x.split(",")(1).substring(0, 10).replace("-", "").toInt})
+
+"/home/ssr/Documents/Data/retail_db/order_items/part-00000"
+
+making a pairrdd
+
+val orderItemsPairedRDD = orderItems.map(oi => {(oi.split(",")(1).toInt, oi)})
+
+
+=============================================================================
+
+flatMap
+
+flatMap is used for
+
+    Performing row level transformations where one record will be transformed into an array of records
+    Number of records in output RDD will be typically more than number of records in input RDD
+
+val l = List("Hello", "How are you doing", "Let us perform word count", "As part of the word count program", "we will see how many times each word repeat")
+val l_rdd = sc.parallelize(l)
+######val l_map = l_rdd.map(ele => ele.split(" "))
+
+val l_flatMap = l_rdd.flatMap(ele => ele.split(" "))
+val wordcount = l_flatMap.map(word => (word, "")).countByKey
+
+
+==============================================================================================
+
+Filtering the data
+
+As part of this topic, we will see how to filter the data
+
+    A filter is an API to filter the data from input RDD
+    It takes an anonymous function which returns true or false
+    All those elements in which anonymous function returns true, such elements will be copied to output RDD
+    Output RDD is typically a subset of input RDD
+    No modifications can be made on the records while filtering the data.
+
+
+
+
+val ordersFiltered = orders.filter(order =>(val o = order.split(",")(o(3) == "COMPLETE" || o(3) == "CLOSED") && (o(1).contains("2013-09"))))
+
+
+// Filtering data
+orders.filter(order => order.split(",")(3) == "COMPLETE")
+orders.count
+orders.filter(order => order.split(",")(3) == "COMPLETE").count
+// Get all the orders from 2013-09 which are in closed or complete
+orders.map(order => order.split(",")(3)).distinct.collect.foreach(println)
+val ordersFiltered = orders.filter(order => {
+  val o = order.split(",")
+  (o(3) == "COMPLETE" || o(3) == "CLOSED") && (o(1).contains("2013-09"))
+})
+ordersFiltered.take(10).foreach(println)
+ordersFiltered.count
+
+scala> orders.filter(o=>(o.split(",")(3)=="CLOSED" || o.split(",")(3)=="COMPLETE") && (o.split(",")(1).contains("2017-09"))).count
+
+val orderItemsMap = orderitems.map(oi => {(oi.split(",")(1).toInt, oi.split(",")(4).toFloat)})
+
+
+val ordersJoin = ordersMap.join(orderItemsMap)
+
+================================================================================================
+
+Joining data sets – outer join
+
+Outer Join
+
+We can perform
+
+    Left outer join using leftOuterJoin
+    Right outer join using rightOuterJoin
+    Full outer join using fullOuterJoin
+    Full outer join is nothing but the union of left outer join and right outer join on the same data sets.
+
+
+val orders = sc.textFile("/public/retail_db/orders")
+val orderItems = sc.textFile("/public/retail_db/order_items")
+val ordersMap = orders.map(order => {
+  (order.split(",")(0).toInt, order)
+})
+val orderItemsMap = orderItems.map(orderItem => {
+  val oi = orderItem.split(",")
+  (oi(1).toInt, orderItem)
+})
+val ordersLeftOuterJoin = ordersMap.leftOuterJoin(orderItemsMap)
+val ordersLeftOuterJoinFilter = ordersLeftOuterJoin.filter(order => order._2._2 == None)
+val ordersWithNoOrderItem = ordersLeftOuterJoinFilter.map(order => order._2._1)
+ordersWithNoOrderItem.take(10).foreach(println)
+val ordersRightOuterJoin = orderItemsMap.rightOuterJoin(ordersMap)
+val ordersWithNoOrderItem = ordersRightOuterJoin.
+  filter(order => order._2._1 == None).
+  map(order => order._2._2)
+ordersWithNoOrderItem.take(10).foreach(println)
+
+
+
+======================================================================================================
+
+||||||||||||||||||||Windowing functions||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+
+val data = sc.textFile("/home/ssr/Documents/stockdata.txt").map(x => x.split(",")).map(x => (x(0).toString,x(1).toString,x(2).toDouble,x(3).toDouble,x(4).toDouble,x(5).toDouble,x(6).toInt))
+
+val df = data.toDF("date","Ticker","open","high","low","close","volume_for_the_day")
+
+
+df.registerTempTable("stocks")
+
+spark.sql("select * from stocks").show
+spark.sql("select count(*) from stocks").show
+
+val yesterday_price = spark.sql("select Ticker,date,close,lag(close,1) over(partition by ticker order by date) as yesterday_price from stocks").show(50)
+
+
+val next_dayclose = spark.sql("select ticker,date,close,lead(close,1) over(partition by ticker order by date) as next_dayclose from stocks").show(50)
+

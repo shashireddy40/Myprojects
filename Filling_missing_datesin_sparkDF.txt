@@ -1,0 +1,137 @@
+Filling missing dates in spark dataframe column
+Ask Question
+Asked 1 year, 10 months ago
+Active 6 months ago
+Viewed 3k times
+2
+
+I've a spark data frame with columns - "date" of type timestamp and "quantity" of type long. For each date, I've some value for quantity. The dates are sorted in increasing order. But there are some dates which are missing. For eg - Current df -
+
+Date        |    Quantity
+10-09-2016  |    1
+11-09-2016  |    2
+14-09-2016  |    0
+16-09-2016  |    1
+17-09-2016  |    0
+20-09-2016  |    2
+
+As you can see, the df has some missing dates like 12-09-2016, 13-09-2016 etc. I want to put 0 in the quantity field for those missing dates such that resultant df should look like -
+
+Date        |    Quantity
+10-09-2016  |    1
+11-09-2016  |    2
+12-09-2016  |    0
+13-09-2016  |    0
+14-09-2016  |    0
+15-09-2016  |    0
+16-09-2016  |    1
+17-09-2016  |    0
+18-09-2016  |    0
+19-09-2016  |    0
+20-09-2016  |    2
+
+Any help/suggestion regarding this will be appreciated. Thanks in advance. Note that I am coding in scala.
+
+
+
+
+||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, LocalDateTime}
+import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.{LongType, TimestampType}
+
+UDFs for String to Valid date format
+
+ val date_transform = udf((date: String) => {
+    val dtFormatter = DateTimeFormatter.ofPattern("d-M-y")
+    val dt = LocalDate.parse(date, dtFormatter)
+    "%4d-%2d-%2d".format(dt.getYear, dt.getMonthValue, dt.getDayOfMonth)
+      .replaceAll(" ", "0")
+  })
+
+Below UDF code taken from Iterate over dates range
+
+  def fill_dates = udf((start: String, excludedDiff: Int) => {
+    val dtFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    val fromDt = LocalDateTime.parse(start, dtFormatter)
+    (1 to (excludedDiff - 1)).map(day => {
+      val dt = fromDt.plusDays(day)
+      "%4d-%2d-%2d".format(dt.getYear, dt.getMonthValue, dt.getDayOfMonth)
+        .replaceAll(" ", "0")
+    })
+  })
+
+Setting up sample dataframe (df)
+
+val df = Seq(
+      ("10-09-2016", 1),
+      ("11-09-2016", 2),
+      ("14-09-2016", 0),
+      ("16-09-2016", 1),
+      ("17-09-2016", 0),
+      ("20-09-2016", 2)).toDF("date", "quantity")
+      .withColumn("date", date_transform($"date").cast(TimestampType))
+      .withColumn("quantity", $"quantity".cast(LongType))
+
+df.printSchema()
+root
+ |-- date: timestamp (nullable = true)
+ |-- quantity: long (nullable = false)
+
+
+df.show()    
++-------------------+--------+
+|               date|quantity|
++-------------------+--------+
+|2016-09-10 00:00:00|       1|
+|2016-09-11 00:00:00|       2|
+|2016-09-14 00:00:00|       0|
+|2016-09-16 00:00:00|       1|
+|2016-09-17 00:00:00|       0|
+|2016-09-20 00:00:00|       2|
++-------------------+--------+
+
+Create a temporary dataframe(tempDf) to union with df:
+
+val w = Window.orderBy($"date")
+val tempDf = df.withColumn("diff", datediff(lead($"date", 1).over(w), $"date"))
+  .filter($"diff" > 1) // Pick date diff more than one day to generate our date
+  .withColumn("next_dates", fill_dates($"date", $"diff"))
+  .withColumn("quantity", lit("0"))
+  .withColumn("date", explode($"next_dates"))
+  .withColumn("date", $"date".cast(TimestampType))
+
+tempDf.show(false)
++-------------------+--------+----+------------------------+
+|date               |quantity|diff|next_dates              |
++-------------------+--------+----+------------------------+
+|2016-09-12 00:00:00|0       |3   |[2016-09-12, 2016-09-13]|
+|2016-09-13 00:00:00|0       |3   |[2016-09-12, 2016-09-13]|
+|2016-09-15 00:00:00|0       |2   |[2016-09-15]            |
+|2016-09-18 00:00:00|0       |3   |[2016-09-18, 2016-09-19]|
+|2016-09-19 00:00:00|0       |3   |[2016-09-18, 2016-09-19]|
++-------------------+--------+----+------------------------+
+
+Now union two dataframes
+
+val result = df.union(tempDf.select("date", "quantity"))
+  .orderBy("date")
+
+result.show()
++-------------------+--------+
+|               date|quantity|
++-------------------+--------+
+|2016-09-10 00:00:00|       1|
+|2016-09-11 00:00:00|       2|
+|2016-09-12 00:00:00|       0|
+|2016-09-13 00:00:00|       0|
+|2016-09-14 00:00:00|       0|
+|2016-09-15 00:00:00|       0|
+|2016-09-16 00:00:00|       1|
+|2016-09-17 00:00:00|       0|
+|2016-09-18 00:00:00|       0|
+|2016-09-19 00:00:00|       0|
+|2016-09-20 00:00:00|       2|
++-------------------+--------+

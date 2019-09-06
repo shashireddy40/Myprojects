@@ -1,0 +1,163 @@
+Create a data frame using Spark
+
+data = sc.te
+
+
+/home/ssrredy1435461/PETROL.csv
+/user/ssrredy1435461/PETROL.csv
+
+
+df=sc.tea
+
+
+save table in hive
+
+do some query using spark sql
+
+
+Automate the process
+
+
+val data = sc.textFile("/home/ssr/Documents/stockdata.txt").map(x => x.split(",")).map(x => (x(0).toString,x(1).toString,x(2).toDouble,x(3).toDouble,x(4).toDouble,x(5).toDouble,x(6).toInt))
+
+val df = data.toDF("date","Ticker","open","high","low","close","volume_for_the_day")
+
+
+df.registerTempTable("stocks")
+
+
+
+val df = sqlContext.read.load('file:///home/ssrredy1435461/PETROL.csv',format='com.databricks.spark.csv',header='true',inferSchema='true')
+
+val dataFrame = spark.read.format("CSV").option("header","true").load("/user/ssrredy1435461/PETROL.csv")
+
+
+District.ID,Distributer name,Buy rate (million),Sell rate(million),volumeIN(millioncubic litter),volume OUT(millioncubic litter),Year
+I4N 1M1,shell,$957.70,$5779.92,933,843,1624
+
+
+val od=sc.textFile("/user/ssrredy1435461/PETROL.csv").map(x => x.split(",")).map(x => (x(0).toString,x(1).toString,x(2).toString,x(3).toString,x(4).toString,x(5).toDouble,x(6).toInt))
+
+X6Q 0I8,hindustan,$965.70,$9553.00,916,825,1661
+H5N 9W3,hindustan,$971.70,$5174.57,1061,633,1662
+L4B 4E5,shell,$980.39,$10692.36,918,886,1663
+S7M 9R5,reliance,$889.97,$3017.50,1093,718,1664
+
+S4W 1Q6,Bharat,$982.46,$11130.32,1016,735,1665
+
+scala> spark.sql("select * from pat limit 10").show
++-----------+----------------+------------------+------------------+-----------------------------+-------------------------------+----+
+"CREATE TABLE PAT(ID String,name String,Buy_rate String,Sellrate String,volumeIN String,volume_OUT String,Year String) STORED as ORC"
+
+
+df.write().mode(SaveMode.Overwrite).saveAsTable("petrol.pet11")
+
+
+df.write.sortBy("year").saveAsTable("ppp")
+
+
+
+
+====================================
+
+
+
+val data = sc.textFile("/home/ssr/Documents/stockdata.txt").map(x => x.split(",")).map(x => (x(0).toString,x(1).toString,x(2).toDouble,x(3).toDouble,x(4).toDouble,x(5).toDouble,x(6).toInt))
+
+
+
+
+val df = data.toDF("date","Ticker","open","high","low","close","volume_for_the_day")
+
+
+df.registerTempTable("stocks")
+
+spark.sql("select * from stocks").show
+spark.sql("select count(*) from stocks").show
+
+
+>>
+val yesterday_price = spark.sql("select Ticker,date,close,lag(close,1) over(partition by ticker order by date) as yesterday_price from stocks").show(50)
+
+
+>>
+val next_dayclose = spark.sql("select ticker,date,close,lead(close,1) over(partition by ticker order by date) as next_dayclose from stocks").show(50)
+
+
+
+
+
+>>
+val minimum = spark.sql("select distinct ticker, min(close) over(partition by ticker) as lowest from stocks").show
+
+
+>>
+val maximum = spark.sql("select distinct ticker, max(close) over(partition by ticker) as highest from stocks").show
+
+
+>>
+val count = spark.sql("select distinct ticker,count(ticker) over(partition by ticker) as ticker_cnt from stocks").show
+
+
+>>
+val sum = spark.sql("select distinct ticker,sum(volume_for_the_day) over(partition by ticker) as total_volume from stocks").show
+
+>>
+val running_total = spark.sql("select ticker,date,volume_for_the_day,sum(volume_for_the_day) over(partition by ticker order by date) as running_total from stocks").show
+
+
+
+>>
+val avg = spark.sql("select distinct ticker, avg(volume_for_the_day) over(partition by ticker) as average_volume from stocks").show
+
+
+
+>>
+val data = sc.textFile("file:///home/acadgild/Documents/datasetWindowingSpark.txt").map(x => x.split(",")).map(x => (x(0).toString,x(1).toString,x(2).toDouble,x(3).toDouble,x(4).toDouble,x(5).toDouble,x(6).toInt))
+
+val df = data.toDF("date","Ticker","open","high","low","close","volume_for_the_day")
+
+df.registerTempTable("stocks")
+
+spark.sql("select * from stocks").show
+spark.sql("select count(*) from stocks").show
+
+
+>>
+val first_value = spark.sql("select distinct ticker,date,high,first_value(high) over(partition by ticker order by date) as first_high from stocks").show(50)
+
+
+
+>>
+val last_value = spark.sql("select distinct ticker,date,high,last_value(high) over(partition by ticker order by date) as last_high from stocks").show
+
+
+Hive metastores runs on 9083 port
+
+spark-shell --driver-java-options"-Dhive.metastore.uris=thrift://localhost:9083"
+
+val sqlContext=new org.apache.spark.sql.hive.HiveContext(sc)
+
+
+
+9.21. Window Functions
+
+Window functions provide the ability to perform calculations across sets of rows that are related to the current query row. See Section 3.5 for an introduction to this feature.
+
+The built-in window functions are listed in Table 9-49. Note that these functions must be invoked using window function syntax; that is an OVER clause is required.
+
+In addition to these functions, any built-in or user-defined aggregate function can be used as a window function (see Section 9.20 for a list of the built-in aggregates). Aggregate functions act as window functions only when an OVER clause follows the call; otherwise they act as regular aggregates.
+
+Table 9-49. General-Purpose Window Functions
+Function 	Return Type 	Description
+row_number() 	bigint 	number of the current row within its partition, counting from 1
+rank() 	bigint 	rank of the current row with gaps; same as row_number of its first peer
+dense_rank() 	bigint 	rank of the current row without gaps; this function counts peer groups
+percent_rank() 	double precision 	relative rank of the current row: (rank - 1) / (total rows - 1)
+cume_dist() 	double precision 	relative rank of the current row: (number of rows preceding or peer with current row) / (total rows)
+ntile(num_buckets integer) 	integer 	integer ranging from 1 to the argument value, dividing the partition as equally as possible
+lag(value anyelement [, offset integer [, default anyelement ]]) 	same type as value 	returns value evaluated at the row that is offset rows before the current row within the partition; if there is no such row, instead return default (which must be of the same type as value). Both offset and default are evaluated with respect to the current row. If omitted, offset defaults to 1 and default to null
+lead(value anyelement [, offset integer [, default anyelement ]]) 	same type as value 	returns value evaluated at the row that is offset rows after the current row within the partition; if there is no such row, instead return default (which must be of the same type as value). Both offset and default are evaluated with respect to the current row. If omitted, offset defaults to 1 and default to null
+first_value(value any) 	same type as value 	returns value evaluated at the row that is the first row of the window frame
+last_value(value any) 	same type as value 	returns value evaluated at the row that is the last row of the window frame
+nth_value(value any, nth integer) 	same type as value 	returns value evaluated at the row that is the nth row of the window frame (counting from 1); null if no such row

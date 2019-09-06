@@ -1,0 +1,292 @@
+UI:reachshashi406122
+9TJJSUI7
+
+ssh reachshashi406122@e.cloudxlab.com-p9TJJSUI7
+
+
+Difference between Managed table and external table :
+
+The main difference is that when you drop an external table, the underlying data files stay intact. This is because the user is expected to manage the data files and directories. With a managed table, the underlying directories and data get wiped out when the table is dropped.
+
+
+Trying to load a file twise then 
+simply it is appending to existing data by creating copy of the file in the HDFS.
+
+Loading multiple files in hive 
+
+
+input is the folder which contains multiple files
+
+load data local inpath 'folder name' into table student1;
+
+CREATE TABLE products(product_name STRING, group_id INT,price INT,group_name STRING )row format delimited fields terminated BY ',' lines terminated BY '\n' 
+tblproperties("skip.header.line.count"="1"); 
+
+
+
+
+Storing Result of Select query into file:
+
+to Store into HDFS:
+
+insert overwrite  directory '/home/demo/output'  select *  from student1;
+
+
+
+Local File System:
+
+insert overwrite local directory '/home/demo/output1' select *  from student1 ;
+
+creating table from another table, with only structure.
+
+hive>create table student111  like student1;
+
+creating table from another table, with  structure and data.
+
+hive> create table student1111 as select * from  student1;
+
+the above query without data 
+
+hive>create table student22 as select * from  student1 where 1=2 ;
+  
+copying records from one table to another table;
+
+hive>INSERT OVERWRITE TABLE  student11  SELECT * FROM student1;
+
+Deleting records from hive Table;
+
+INSERT OVERWRITE TABLE student1  SELECT * FROM student1 WHERE 1=0;
+
+load data local inpath '/user/reachshashi406122/data/coll.txt' into table studentcoll;
+
+
+hadoop fs -put /home/reachshashi406122/coll.txt  /user/reachshashi406122/data
+
+=====================================================
+
+CREATE DATABASE IF NOT EXISTS Liberty;
+
+use Liberty
+
+set hive.cli.print.current.db=true;
+
+
+Create table syntax :
+
+CREATE [EXTERNAL] TABLE [IF NOT EXISTS] table_name
+
+ [ (  first_col_name    data_type   [COMMENT col_comment], 
+      second_col_name    data_type   [COMMENT col_comment]...)]
+
+ [ COMMENT   table_comment  ] 
+
+[  PARTITIONED BY  (col_name   data_type   [COMMENT col_comment], ...)] 
+
+[  CLUSTERED BY (  col_name, col_name, ...) 
+
+[ SORTED BY ( col_name [ASC|DESC], ...) ] 
+
+INTO num_buckets BUCKETS] 
+
+[ ROW FORMAT  row_format] 
+
+[STORED AS  file_format]
+
+[  LOCATION  hdfs_path  ] 
+
+[ TBLPROPERTIES (property_name=property_value, ...)] 
+
+[AS select_statement] 
+
+
+file_format: 
+
+SEQUENCEFILE | TEXTFILE | INPUTFORMAT input_format_classname OUTPUTFORMAT output_format_classname
+
+eg : 
+
+CREATE TABLE abc( 
+     name      STRING, 
+     id        BIGINT, 
+     isFTE     BOOLEAN, 
+     role      STRING, 
+     salary    DECIMAL(8,2), 
+     phones    ARRAY<INT>, 
+     deductions MAP<STRING, FLOAT>, 
+     address   STRUCT<street:STRING, city:STRING, state:STRING, zip:INT>, 
+     others    UNIONTYPE<FLOAT,BOOLEAN,STRING>, 
+     misc      BINARY 
+     ) 
+ROW FORMAT DELIMITED 
+    FIELDS TERMINATED BY '\001' 
+    COLLECTION ITEMS TERMINATED BY '\002' 
+    MAP KEYS TERMINATED BY '\003' 
+    LINES TERMINATED BY '\n';
+
+
+create table if not exists student2 ( name string, id int , year int) row format delimited fields terminated by '\t' lines terminated by '\n' stored as textfile;
+
+
+Load data local inpath "" into table student1;
+
+
+===========================================================================================
+
+
+spark-sql --master yarn --conf spark.ui.port=12567
+
+create table orders (
+  order_id int,
+  order_date string,
+  order_customer_id int,
+  order_status string
+) row format delimited fields terminated by ','
+stored as textfile;
+
+load data local inpath '/data/retail_db/orders' into table orders;
+
+create table order_items (
+  order_item_id int,
+  order_item_order_id int,
+  order_item_product_id int,
+  order_item_quantity int,
+  order_item_subtotal float,
+  order_item_product_price float
+) row format delimited fields terminated by ','
+stored as textfile;
+
+load data local inpath '/data/retail_db/order_items' into table order_items;
+
+
+create table orders (
+  order_id int,
+  order_date string,
+  order_customer_id int,
+  order_status string
+) stored as orc;
+
+
+insert into table orders select * from dgadiraju_retail_db_txt.orders;
+
+
+
+    Launch spark-shell by using the command spark-shell –master yarn \
+    –conf spark.ui.port = 12345
+    Connect to hive database using sqlContext sqlContext.sql(“use dgadiraju_retail_db_txt”)
+    To list the tables use this query sqlContext.sql(“show tables”).show
+    To view the data in the table, use the query sqlContext.sql(“select * from orders limit 10″).show
+
+===============================================================================================
+
+Connect to hive database using sqlContext sqlContext.sql(“use dgadiraju_retail_db_txt”)
+
+select order_status,
+       case  
+            when order_status IN ('CLOSED', 'COMPLETE') then 'No Action' 
+            when order_status IN ('ON_HOLD', 'PAYMENT_REVIEW', 'PENDING', 'PENDING_PAYMENT', 'PROCESSING') then 'Pending Action'
+            else 'Risky'
+       end from orders limit 10;
+
+
+NVL
+
+    An nvl function is used to replace NULL value with another value.
+
+Syntax
+
+NVL (exp, replacement-exp)
+
+select nvl(order_status, 'Status Missing') from orders limit 100;
+
+
+
+select o.*, c.* from customers c left outer join orders o
+on o.order_customer_id = c.customer_id
+limit 10;
+
+select count(1) from orders o inner join customers c
+on o.order_customer_id = c.customer_id;
+
+select count(1) from customers c left outer join orders o
+on o.order_customer_id = c.customer_id;
+
+select c.* from customers c left outer join orders o
+on o.order_customer_id = c.customer_id
+where o.order_customer_id is null;
+
+
+select o.order_id, o.order_date, o.order_status, round(sum(oi.order_item_subtotal), 2) order_revenue
+from orders o join order_items oi
+on o.order_id = oi.order_item_order_id
+where o.order_status in ('COMPLETE', 'CLOSED')
+group by o.order_id, o.order_date, o.order_status
+having sum(oi.order_item_subtotal) >= 1000;
+
+
+
+
+
+
+
+
+
+
+========================================================
+
+CREATE TABLE employees (
+name
+STRING,
+salary
+FLOAT,
+subordinates ARRAY<STRING>,
+deductions MAP<STRING, FLOAT>,
+address
+STRUCT<street:STRING, city:STRING, state:STRING, zip:INT>
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\001'
+COLLECTION ITEMS TERMINATED BY '\002'
+MAP KEYS TERMINATED BY '\003'
+LINES TERMINATED BY '\n'
+STORED AS TEXTFILE;
+
+
+
+=========================================================
+
+hive> set hive.exec.dynamic.partition=true;
+hive> set hive.exec.dynamic.partition.mode=nonstrict;
+hive> set hive.exec.max.dynamic.partitions.pernode=1000;
+hive>
+>
+>
+>
+INSERT OVERWRITE TABLE employees
+PARTITION (country, state)
+SELECT ..., se.cty, se.st
+FROM staged_employees se;
+
+
+For example, each of the following two queries creates a table from the same source
+table, history :
+hive>
+>
+hive>
+>
+INSERT
+SELECT
+INSERT
+SELECT
+OVERWRITE TABLE sales
+* FROM history WHERE action='purchased';
+OVERWRITE TABLE credits
+* FROM history WHERE action='returned';
+This syntax is correct, but inefficient. The following rewrite achieves the same thing,
+but using a single pass through the source history table:
+hive> FROM history
+> INSERT OVERWRITE sales
+SELECT * WHERE action='purchased'
+> INSERT OVERWRITE credits SELECT * WHERE action='returned';
+
+
+create table stocks(date date ,Ticker String ,open Int,high Int ,low Int ,close Int,volume_for_the_day Int) stored as sequencefile; 
